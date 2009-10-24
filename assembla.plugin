@@ -1,0 +1,170 @@
+<?php
+
+/*
+ * Copyright 2009 Tristan Waddington
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+define('ASSEMBLA_SPACE', '...');
+define('ASSEMBLA_USERNAME', '...');
+define('ASSEMBLA_PASSWORD', '...');
+
+define('ASSEMBLA_ALL_TICKETS', 0);
+define('ASSEMBLA_ACTIVE_BY_MILESTONE', 1);
+define('ASSEMBLA_ACTIVE_BY_COMPONENT', 2);
+define('ASSEMBLA_ACTIVE_BY_USER', 3);
+define('ASSEMBLA_READY_TO_TEST', 4);
+define('ASSEMBLA_CLOSED_BY_MILESTONE', 5);
+define('ASSEMBLA_CLOSED_BY_COMPONENT', 6);
+define('ASSEMBLA_CLOSED_BY_DATE', 7);
+define('ASSEMBLA_ALL_BY_MILESTONE', 8);
+define('ASSEMBLA_ALL_BY_USER', 9);
+define('ASSEMBLA_ACTIVE_BY_USER', 10);
+define('ASSEMBLA_CLOSED_BY_USER', 11);
+
+/*
+ * Plugin for communicating with the Assembla REST API
+ *
+ * @author Tristan Waddington
+ * @copyright Copyright (c) 2009, Tristan Waddington
+ * @link https://www.assembla.com/wiki/show/breakoutdocs/Ticket_REST_API
+ */
+class Assembla {
+  protected $_spaceKey;
+  protected $_username;
+  protected $_password;
+
+  protected $_httpCode;
+  protected $_ch;
+
+  /**
+   * @param string $key
+   * @param string $username
+   * @param string $password
+   */
+  public function __construct($key, $username, $password) {
+    $this->_spaceKey = $key;
+    $this->_username = $username;
+    $this->_password = $password;
+  }
+  /**
+   * This function creates a new ticket for the space defined by {@see Assembla::_spaceKey}.
+   *
+   * @param array $data an associative array of information to POST.
+   * @return mixed
+   * @link https://www.assembla.com/wiki/show/breakoutdocs/Ticket_REST_API
+   *
+   * @todo reporting-id, priority [1-5] (highest-lowest), status [0-4] (new-test), summary, description, component-id
+   */
+  public function createTicket($data = array()) {
+    $url = 'www.assembla.com/spaces/' . $this->_spaceKey . '/tickets';
+    $data = array('ticket' => $data);
+
+    return $this->_request($url, $data);
+  }
+  /**
+   * @todo This function uses a `PUT` request and is incompatible with the current {@see net::fetch} method.
+   *
+   * @param string $ticketNumber
+   * @return mixed
+   */
+  public function updateTicket($ticketNumber, $data) {
+    //$url = 'www.assembla.com/spaces/' . $this->_spaceKey . '/tickets/' . $ticketNumber;
+    //return $this->_request($url, $params, 'PUT');
+  }
+  /**
+   * This function is used to get a specific ticket by id.
+   *
+   * @param string $ticketNumber
+   * @return mixed
+   */
+  public function showTicket($ticketNumber) {
+    $url = 'www.assembla.com/spaces/' . $this->_spaceKey . '/tickets/' . $ticketNumber;
+    return $this->_request($url);
+  }
+  /**
+   * This function fetches the comments for a specific ticket.
+   *
+   * @param string $ticketNumber
+   * @return mixed
+   */
+  public function listComments($ticketNumber) {
+    $url = 'www.assembla.com/spaces/' . $this->_spaceKey . '/tickets/' . $ticketNumber . '/comments';
+    return $this->_request($url);
+  }
+  /**
+   * Fetch a space's tickets
+   *
+   * You can specify the optional $reportId using one of 12 constants defined at the top of {@see Assembla.plugin}.
+   *
+   * @param integer|constant $reportId
+   * @return mixed
+   */
+  public function listTickets($reportId = ASSEMBLA_ALL_TICKETS) {
+    $url = 'www.assembla.com/spaces/' . $this->_spaceKey . '/tickets?tickets_report_id=' . $reportId;
+    return $this->_request($url);
+  }
+  /**
+   * This protected function is used to build the request URL.
+   *
+   * @param string $suffix
+   * @return string
+   */
+  protected function _buildUrl($suffix) {
+    return 'http://' . $this->_username . ':' . $this->_password . '@' . $suffix;
+  }
+  /**
+   * This function builds the API request and invokes CURL
+   *
+   * @param string $url
+   * @param string $requestType
+   * @param bool $parse
+   * @return mixed
+   */
+  protected function _request($url, $post = null) {
+    $url = $this->_buildUrl($url);
+
+		$ch = curl_init();
+    $curlopts = array(
+			CURLOPT_URL => $url,
+			CURLOPT_HEADER => true,
+			CURLOPT_HTTPHEADER => array('Accept: application/xml'),
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_TIMEOUT => 5,
+			CURLOPT_FAILONERROR => true,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_MAXREDIRS => 3
+		);
+
+		if ($post) {
+			$curlopts[CURLOPT_POST] = 1;
+			$curlopts[CURLOPT_POSTFIELDS] = http_build_query($post);
+		}
+
+    curl_setopt_array($ch, $curlopts);
+
+    $response = curl_exec($ch);
+		$error = curl_error($ch);
+		curl_close($ch);
+
+		if ($error) {
+			die($error);
+		}
+
+		return $response;
+  }
+}
+
+?>

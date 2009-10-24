@@ -1,0 +1,28 @@
+Author: Tristan Waddington
+Website: http://www.tristanwaddington.com/
+Email: tristan@tristanwaddington.com
+
+This is a PHP library for interacting with the Assembla <http://assembla.com/> Ticket API.
+
+This library was originally written to enable some web applications I worked on to submit bug reports to Assembla automatically.
+
+Please see the plugin file for method documentation.
+
+EXAMPLES
+
+<?php
+  /*
+   * Load plugin file.
+   */
+  require_once 'assembla.plugin'; 
+  
+  /*
+   * Instantiate a new object from the Assembla class.
+   */
+  $assembla = new Assembla(ASSEMBLA_SPACE, ASSEMBLA_USERNAME, ASSEMBLA_PASSWORD);
+  
+  /*
+   * Create a new ticket.
+   */
+  $assembla->createTicket(array('description' => '...', 'summary' => '...', 'priority' => 3));
+?>
